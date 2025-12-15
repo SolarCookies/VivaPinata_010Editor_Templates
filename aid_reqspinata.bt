@@ -1,0 +1,247 @@
+//------------------------------------------------
+//--- 010 Editor v16.0.2 Binary Template
+//
+//      File: aid_reqspinata
+//   Authors: SolarCookies
+//   Version: 1.0.0
+//   Purpose: Figure out the structure of requirements
+//------------------------------------------------
+
+
+//------------------------------------------------
+//                  Helpers
+//------------------------------------------------
+
+float Clamp01(float v)
+{
+    if (v < 0.0) return 0.0;
+    if (v > 1.0) return 1.0;
+    return v;
+}
+
+int HSVtoRGB(float h, float s, float v)
+{
+    local float r, g, b;
+    local int i;
+    local float f, p, q, t;
+
+    h = h * 6.0;
+    i = (int)h;
+    f = h - i;
+
+    p = v * (1.0 - s);
+    q = v * (1.0 - s * f);
+    t = v * (1.0 - s * (1.0 - f));
+
+    switch (i % 6)
+    {
+        case 0: r = v; g = t; b = p; break;
+        case 1: r = q; g = v; b = p; break;
+        case 2: r = p; g = v; b = t; break;
+        case 3: r = p; g = q; b = v; break;
+        case 4: r = t; g = p; b = v; break;
+        case 5: r = v; g = p; b = q; break;
+    }
+
+    // BGR for 010 Editor
+    return ((int)(b * 255) << 16) |
+           ((int)(g * 255) << 8)  |
+           ((int)(r * 255));
+}
+
+int GetNormalizedHueColor(int Value, int Max, float s, float v)
+{
+    local float normalized;
+    local float hue;
+    
+    if(Value == 0){ //REQ_ANIMAL_NULL should be black
+       return HSVtoRGB(0.0, 0.0, 0.0); 
+    }
+    if(Value == 3){ //REQ_ANIMAL_BEGIN_SECTION should be White
+       return HSVtoRGB(0.0, 0.0, 1.0); 
+    }
+    if(Value == 4){ //REQ_ANIMAL_END_SECTION should be dark gray
+       return HSVtoRGB(0.0, 0.0, 0.4); 
+    }
+    if(Value == 5 || Value == 6){ //All operatiors should be light gray
+       return HSVtoRGB(0.0, 0.0, 0.8); 
+    }
+    
+
+    normalized = Clamp01((float)Value / (float)Max);
+
+    hue = normalized;
+
+    return HSVtoRGB(hue, s, v);
+}
+
+//------------------------------------------------
+//                  ENUMs
+//------------------------------------------------
+
+local int blocksizes[39] = {
+    4,16,4,4,8,4,4,4,
+    152,12,36,24,24,
+    36,316,16,136,16,
+    16,12,136,12,168,
+    24,16,20,12,28,20,
+    288,140,16,16,16,
+    12,128,256,256,128
+};
+
+enum RequirementTypeEnum2
+{
+    REQ_ANIMAL_NULL = 0,
+    REQ_ANIMAL_TIME_IS_BETWEEN = 1,
+    REQ_ANIMAL_DOES_NOT_JUST_COME_IN= 2,
+    REQ_ANIMAL_BEGIN_SECTION = 3,
+    REQ_ANIMAL_END_SECTION = 4,
+    REQ_ANIMAL_AND = 5,
+    REQ_ANIMAL_OR = 6,
+    REQ_ANIMAL_NOT = 7,
+    REQ_ANIMAL_GARDEN_SURFACE_COVER_MULTIPLE_TAG_GROUP = 8,
+    REQ_ANIMAL_PLAYER_HAS_ATTAINED_LEVEL = 9,
+    REQ_ANIMAL_TARGET_IS_OF_TYPE = 10,
+    REQ_ANIMAL_TARGET_IS_LOGICALLY_SMALLER = 11,
+    REQ_ANIMAL_TARGET_IS_LOGICALLY_LARGER = 12,
+    REQ_ANIMAL_TARGET_IS_OF_CLASS = 13,
+    REQ_ANIMAL_GARDEN_CONTAINS_TAG_GROUP = 14,
+    REQ_ANIMAL_PLAYER_POINTS = 15,
+    REQ_ANIMAL_PLAYER_HAS_AWARD = 16,
+    REQ_ANIMAL_PLAYER_HAS_CREDITS = 17,
+    REQ_ANIMAL_ACTOR_HAS_EATEN_REQUIRED_AMOUNT = 18,
+    REQ_ANIMAL_GARDEN_HAS_ENOUGH_SPACE = 19,
+    REQ_ANIMAL_INSERT_REQUIREMENT_ASSET = 20,
+    REQ_ANIMAL_ANIMAL_HAS_ACCESSORY = 21,
+    REQ_ANIMAL_ANIMAL_CHECK_EVENTS = 22,
+    REQ_ANIMAL_GAME_TIME_REACHED = 23,
+    REQ_ANIMAL_GAMEPLAY_TIME_REACHED = 24,
+    REQ_ANIMAL_GARDEN_SURFACE_COVER_SINGLE = 25,
+    REQ_ANIMAL_GARDEN_VALUE = 26,
+    REQ_ANIMAL_GARDEN_SURFACE_COVER_MULTIPLE = 27,
+    REQ_ANIMAL_PLAYER_HAS_EVENT = 28,
+    REQ_ANIMAL_TARGET_IS_OF_TAG_GROUP = 29,
+    REQ_ANIMAL_PLAYER_HAS_AWARD_FILTER = 30,
+    REQ_ANIMAL_PLAYER_HAS_STAT = 31,
+    REQ_ANIMAL_ANIMAL_GENERATOR_FLAG_SET = 32,
+    REQ_ANIMAL_LOCAL_PLAYER_POINTS = 33,
+    REQ_ANIMAL_LOCAL_PLAYER_HAS_ATTAINED_LEVEL = 34,
+    REQ_ANIMAL_PLAYER_IS_CLIENT = 35,
+    REQ_ANIMAL_LOCAL_PLAYER_HAS_CREDITS = 36,
+    REQ_ANIMAL_LOCAL_GAMEPLAY_TIME_REACHED = 37,
+    REQ_ANIMAL_DUMMY = 38
+};
+
+//------------------------------------------------
+//                  Functions
+//------------------------------------------------
+local int LColor = 0;
+local int NColor = 0;
+local int DColor = 0;
+
+int ReadNextRequirementStruct(RequirementTypeEnum2 Type){
+    FSeek(FTell()-4);
+    RequirementTypeEnum2 RequirementType <bgcolor=NColor>;
+    FSeek(FTell());
+    
+    switch (Type) {
+        
+        case REQ_ANIMAL_NULL: return 0;
+        
+        case REQ_ANIMAL_BEGIN_SECTION: return 1;
+        
+        case REQ_ANIMAL_GARDEN_SURFACE_COVER_SINGLE:
+            struct REQ_ANIMAL_GARDEN_SURFACE_COVER_SINGLE_STRUCT{ // size: 4 and index: 4
+                int unk_int1;
+                int unk_int2;
+                int unk_int3;
+                int unk_int4;
+            } REQ_ANIMAL_GARDEN_SURFACE_COVER_SINGLE_struct <bgcolor=DColor>;
+            return 1;
+            break;
+            
+        case REQ_ANIMAL_END_SECTION:
+            struct REQ_ANIMAL_END_SECTION_STRUCT{ // size: 4 and index: 4
+                int unk_int1;
+            } REQ_ANIMAL_END_SECTION_struct <bgcolor=DColor>;
+            return 1;
+            break;
+        
+        case REQ_ANIMAL_ANIMAL_CHECK_EVENTS:
+            struct REQ_ANIMAL_ANIMAL_CHECK_EVENTS_STRUCT{ //size: 164 and index: 22
+                int unk_int1;
+                int unk_int2;
+                int unk_int3;
+                int unk_int4;
+                char taggroup[144] <bgcolor=LColor>;
+                int int5;
+            } REQ_ANIMAL_ANIMAL_CHECK_EVENTS_struct <bgcolor=DColor>;
+            return 1;
+            break;
+            
+        case REQ_ANIMAL_GARDEN_HAS_ENOUGH_SPACE:
+            struct REQ_ANIMAL_GARDEN_HAS_ENOUGH_SPACE_STRUCT{ // size: 8 and index: 19
+                int unk_int1;
+                int unk_int2;
+            } REQ_ANIMAL_GARDEN_HAS_ENOUGH_SPACE_struct <bgcolor=DColor>;
+            return 1;
+            break;
+            
+        case REQ_ANIMAL_GARDEN_CONTAINS_TAG_GROUP:
+            struct REQ_ANIMAL_GARDEN_CONTAINS_TAG_GROUP_STRUCT{ // size: 312 and index: 14
+                int unk_int1;
+                int unk_int2;
+                int unk_int3;
+                int unk_int4;
+                int unk_int5;
+                int unk_int6;
+                int unk_int7;
+                int unk_int8;
+                int unk_int9;
+                int unk_int10;
+                char taggroup[264] <bgcolor=LColor>;
+                int unk_int11;
+                int unk_int12;
+            } REQ_ANIMAL_GARDEN_CONTAINS_TAG_GROUP_struct <bgcolor=DColor>;
+            return 1;
+            break;
+            
+        default:
+            // code to execute if none of the cases match
+            Printf("Unknown block ran into: %d\n", Type);
+            FSeek(FTell()+blocksizes[RequirementType]-4);            
+            return 1;
+            break;
+    }
+    return 1;
+};
+
+int ReadNextRequirement2(){
+    
+    RequirementTypeEnum2 RequirementType <bgcolor=cWhite>;
+    
+    LColor = GetNormalizedHueColor(RequirementType,38,0.65,0.95);
+    NColor = GetNormalizedHueColor(RequirementType,38,1.0,1.0);
+    DColor = GetNormalizedHueColor(RequirementType,38,0.65,0.50);
+    
+    local int result = ReadNextRequirementStruct(RequirementType);
+    
+        
+    return result;
+};
+//------------------------------------------------
+
+//------------------------------------------------
+//                      FILE
+//------------------------------------------------
+local int TestEndian;
+TestEndian = ReadInt();
+if(TestEndian > 512){
+    // I assume that its safe to is less then 512 requirements in any given viva pinata game, the pc port has only 38 types
+    // so if we have more then we more then likely ran into a BigEndian file probably from the xbox versions
+    BigEndian();
+}
+
+while(ReadNextRequirement2()){
+    
+}
